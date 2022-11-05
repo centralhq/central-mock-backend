@@ -13,6 +13,8 @@ func BuildContainer() *dig.Container {
 	container.Provide(NewShapeRepository)
 	container.Provide(NewShapeService)
 	container.Provide(NewServer)
+	container.Provide(NewHub)
+	container.Provide(NewOperationManager)
 
 	return container
 
@@ -21,7 +23,8 @@ func BuildContainer() *dig.Container {
 func main() {
     container := BuildContainer()
     
-    err := container.Invoke(func(server *Server) {
+    err := container.Invoke(func(server *Server, hub *Hub) {
+		hub.run()
 		server.Run()
 	})
 

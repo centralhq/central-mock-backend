@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"encoding/json"
 	"log"
 	"net/http"
-	"github.com/mitchellh/mapstructure"
 	"github.com/gorilla/websocket"
 )
 
 type Server struct {
+	handler *OperationManager
 	config *Config
-	shapeService *ShapeService
+	hub *Hub
 }
 
 type ShapeOperations struct {
@@ -30,25 +29,35 @@ type AckOperations struct {
 type ShapePayload struct {
 	Id string 		`json:"id"`
 	NewShape string	`json:"newShape"`
+	NewCounter int8 `json:"newCounter"`
 }
 
 type ColorPayload struct {
 	Id string		`json:"id"`
 	NewColor string `json:"newColor"`
+	NewCounter int8 `json:"newCounter"`
 }
 
 type SizePayload struct {
 	Id string		`json:"id"`
 	NewSize string  `json:"newSize"`
+	NewCounter int8 `json:"newCounter"`
 }
 
 var WsMessageType = 1
 
-func NewServer(config *Config, shapeService *ShapeService) *Server {
+func NewServer(handler *OperationManager, config *Config, hub *Hub) *Server {
     return &Server{
+		handler: handler,
 		config: config,
-		shapeService: shapeService,
+		hub: hub,
 	}
+}
+
+func (s *Server) Run() {
+	fmt.Println("Hello WebSocket")
+	s.Handler()
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 var upgrader = websocket.Upgrader{
@@ -64,152 +73,21 @@ func (s *Server) Handler() {
 func (s *Server) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	// upgrade this connection to a WebSocket connection
 
-	ws, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
+		return
 	}
+	// There will be many instances of Client, so it shouldn't be in the DI container
+	// Problem: should handler be instantiated once? not rly impt
+	client := NewClient(s.hub, conn, s.handler)
+	client.hub.register <- client
+	s.handler.shape(conn)
+	// Allow collection of memory referenced by the caller by doing all work in
+	// new goroutines.
+	go client.writePump()
+	go client.readPump()
 
 	log.Println("Client Connected")
-	s.shape(ws)
-// TODO replace reader with postgres persistence
-	s.reader(ws)
 }
 
-func (s *Server) reader(conn *websocket.Conn) {
-	for {
-		_, p, err := conn.ReadMessage()
-
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		var operation *ShapeOperations
- 
-		err = json.Unmarshal(p, &operation)
-
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		s.executeSetter(conn, operation)
-		
-	}
-}
-
-func (s *Server) shape(conn *websocket.Conn) {
-	shape := s.shapeService.GetShape()
-
-	packet := ShapeOperations{
-		OpType: "load",
-		ConflictId: "",
-		Payload: shape,
-	}
-	bytes, _ := json.Marshal(packet)
-	log.Println(packet)
-	
-	err := conn.WriteMessage(WsMessageType, bytes)
-
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func (s *Server) setShape(conn *websocket.Conn, op *ShapeOperations) {
-	var payload = ShapePayload{}
-	err := mapstructure.Decode(op.Payload, &payload)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	returnShape := s.shapeService.SetShape(payload.NewShape)
-
-	payload.NewShape = *returnShape
-
-	result := AckOperations{
-		Status: "success",
-		OpType: op.OpType,
-		ConflictId: op.ConflictId,
-		Payload: payload,
-	}
-	bytes, _ := json.Marshal(result)
-
-	err = conn.WriteMessage(WsMessageType, bytes)
-
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func (s *Server) setColor(conn *websocket.Conn, op *ShapeOperations) {
-	var payload = ColorPayload{}
-	err := mapstructure.Decode(op.Payload, &payload)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	returnColor := s.shapeService.SetColor(payload.NewColor)
-
-	payload.NewColor = *returnColor
-
-	result := AckOperations{
-		Status: "success",
-		OpType: op.OpType,
-		ConflictId: op.ConflictId,
-		Payload: payload,
-	}
-	bytes, _ := json.Marshal(result)
-
-	err = conn.WriteMessage(WsMessageType, bytes)
-
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func (s *Server) setSize(conn *websocket.Conn, op *ShapeOperations) {
-	var payload = SizePayload{}
-	err := mapstructure.Decode(op.Payload, &payload)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	returnSize := s.shapeService.SetSize(payload.NewSize)
-	
-	payload.NewSize = *returnSize
-
-	result := AckOperations{
-		Status: "success",
-		OpType: op.OpType,
-		ConflictId: op.ConflictId,
-		Payload: payload,
-	}
-	bytes, _ := json.Marshal(result)
-
-	err = conn.WriteMessage(WsMessageType, bytes)
-
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func (s *Server) Run() {
-	fmt.Println("Hello WebSocket")
-	s.Handler()
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func (s *Server) executeSetter(conn *websocket.Conn, op *ShapeOperations) {
-	switch op.OpType {
-		case "SET_SHAPE":
-			s.setShape(conn, op)
-		case "SET_COLOR":
-			s.setColor(conn, op)
-		case "SET_SIZE":
-			s.setSize(conn, op)
-	}
-}
