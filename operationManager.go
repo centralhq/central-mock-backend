@@ -17,7 +17,7 @@ func NewOperationManager(shapeService *ShapeService) *OperationManager {
 		shapeService: shapeService,
 	}
  }
-func (s *OperationManager) shape(conn *websocket.Conn) {
+func (s *OperationManager) initInfo(conn *websocket.Conn) {
 	shape := s.shapeService.GetShape()
 
 	packet := ShapeOperations{
@@ -64,6 +64,7 @@ func (s *OperationManager) setShape(op *ShapeOperations) ([]byte, error) {
 	result := AckOperations{
 		Status: "success",
 		OpType: op.OpType,
+		UuId: op.UuId,
 		ConflictId: op.ConflictId,
 		Payload: payload,
 	}
@@ -101,6 +102,7 @@ func (s *OperationManager) setColor(op *ShapeOperations) ([]byte, error) {
 	result := AckOperations{
 		Status: "success",
 		OpType: op.OpType,
+		UuId: op.UuId,
 		ConflictId: op.ConflictId,
 		Payload: payload,
 	}
@@ -138,6 +140,7 @@ func (s *OperationManager) setSize(op *ShapeOperations) ([]byte, error) {
 	result := AckOperations{
 		Status: "success",
 		OpType: op.OpType,
+		UuId: op.UuId,
 		ConflictId: op.ConflictId,
 		Payload: payload,
 	}

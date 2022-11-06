@@ -24,7 +24,7 @@ func main() {
     container := BuildContainer()
     
     err := container.Invoke(func(server *Server, hub *Hub) {
-		hub.run()
+		go hub.run()
 		server.Run()
 	})
 

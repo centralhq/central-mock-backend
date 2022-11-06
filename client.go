@@ -42,14 +42,17 @@ type Client struct {
 	send chan []byte
 
 	handler *OperationManager
+	
+	uuid string
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, handler *OperationManager) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, handler *OperationManager, uuid string) *Client {
 	return &Client{
 		hub: hub,
 		conn: conn,
 		send: make(chan []byte),
 		handler: handler,
+		uuid: uuid,
 	}
 }
 
@@ -84,6 +87,9 @@ func (c *Client) readPump() {
 			log.Println(err)
 			return
 		}
+
+		operation.UuId = c.uuid
+
 		bytes, err := c.handler.executeSetter(operation)
 		c.hub.broadcast <- bytes
 	}

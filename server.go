@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"github.com/gorilla/websocket"
+	"github.com/google/uuid"
 )
 
 type Server struct {
@@ -15,6 +16,7 @@ type Server struct {
 
 type ShapeOperations struct {
 	OpType 		string		`json:"opType"`
+	UuId		string		`json:"uuId"`
 	ConflictId 	string  	`json:"conflictId"`
 	Payload 	interface{}	`json:"payload"`
 }
@@ -22,6 +24,7 @@ type ShapeOperations struct {
 type AckOperations struct {
 	Status 		string 		`json:"status"`
 	OpType		string		`json:"opType"`
+	UuId		string		`json:"uuId"`
 	ConflictId 	string		`json:"conflictId"`
 	Payload 	interface{} `json:"payload"`
 }
@@ -80,9 +83,10 @@ func (s *Server) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// There will be many instances of Client, so it shouldn't be in the DI container
 	// Problem: should handler be instantiated once? not rly impt
-	client := NewClient(s.hub, conn, s.handler)
+	uuid := uuid.NewString()
+	client := NewClient(s.hub, conn, s.handler, uuid) // possibly store sessionId here
 	client.hub.register <- client
-	s.handler.shape(conn)
+	s.handler.initInfo(conn) // not so neat, as it is not tightly coupled to client
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
 	go client.writePump()
