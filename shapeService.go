@@ -16,14 +16,14 @@ func (service *ShapeService) GetShape() *ShapeObject {
 	return service.repo.GetShape()
 }
 
-func (service *ShapeService) SetShape(shape string) *string {
-	return service.repo.SetShape(shape)
+func (service *ShapeService) SetShape(uid string, shape string) *int8 {
+	return service.repo.SetShape(uid, shape)
 }
 
-func (service *ShapeService) SetColor(color string) *string {
-	return service.repo.SetColor(color)
+func (service *ShapeService) SetColor(uid string, color string) *int8 {
+	return service.repo.SetColor(uid, color)
 }
 
-func (service *ShapeService) SetSize(size string) *string {
-	return service.repo.SetSize(size)
+func (service *ShapeService) SetSize(uid string, size string) *int8 {
+	return service.repo.SetSize(uid, size)
 }

@@ -7,9 +7,8 @@ package main
 import (
 	"bytes"
 	"log"
-	"net/http"
+	"encoding/json"
 	"time"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -41,6 +40,20 @@ type Client struct {
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+
+	handler *OperationManager
+	
+	uuid string
+}
+
+func NewClient(hub *Hub, conn *websocket.Conn, handler *OperationManager, uuid string) *Client {
+	return &Client{
+		hub: hub,
+		conn: conn,
+		send: make(chan []byte),
+		handler: handler,
+		uuid: uuid,
+	}
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -65,9 +78,25 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		// TODO: insert setter logic here, but need to get the pointer
+		// TODO: insert setter logic here, but need to get the counter from the postgres
+		var operation *ShapeOperations
+ 
+		err = json.Unmarshal(message, &operation)
+
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		operation.UuId = c.uuid
+
+		bytes, err := c.handler.executeSetter(operation)
 		
-		c.hub.broadcast <- message
+		if err != nil {
+			log.Println(err)
+			return
+		} 
+		c.hub.broadcast <- bytes
 	}
 }
 
@@ -115,20 +144,4 @@ func (c *Client) writePump() {
 			}
 		}
 	}
-}
-
-// serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
-
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
-	go client.writePump()
-	go client.readPump()
 }
