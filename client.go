@@ -91,6 +91,11 @@ func (c *Client) readPump() {
 		operation.UuId = c.uuid
 
 		bytes, err := c.handler.executeSetter(operation)
+		
+		if err != nil {
+			log.Println(err)
+			return
+		} 
 		c.hub.broadcast <- bytes
 	}
 }

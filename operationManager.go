@@ -17,11 +17,12 @@ func NewOperationManager(shapeService *ShapeService) *OperationManager {
 		shapeService: shapeService,
 	}
  }
-func (s *OperationManager) initInfo(conn *websocket.Conn) {
+func (s *OperationManager) initInfo(conn *websocket.Conn, uuid string) {
 	shape := s.shapeService.GetShape()
 
 	packet := ShapeOperations{
 		OpType: "load",
+		UuId: uuid,
 		ConflictId: "",
 		Payload: shape,
 	}
@@ -57,7 +58,7 @@ func (s *OperationManager) setShape(op *ShapeOperations) ([]byte, error) {
 		log.Println(err)
 	}
 
-	newCounter := s.shapeService.SetShape(payload.NewShape)
+	newCounter := s.shapeService.SetShape(payload.Id, payload.NewShape)
 
 	payload.NewCounter = *newCounter
 
@@ -95,7 +96,7 @@ func (s *OperationManager) setColor(op *ShapeOperations) ([]byte, error) {
 		log.Println(err)
 	}
 
-	newCounter := s.shapeService.SetColor(payload.NewColor)
+	newCounter := s.shapeService.SetColor(payload.Id, payload.NewColor)
 
 	payload.NewCounter = *newCounter
 
@@ -133,7 +134,7 @@ func (s *OperationManager) setSize(op *ShapeOperations) ([]byte, error) {
 		return nil, err
 	}
 
-	newCounter := s.shapeService.SetSize(payload.NewSize)
+	newCounter := s.shapeService.SetSize(payload.Id, payload.NewSize)
 	
 	payload.NewCounter = *newCounter
 
