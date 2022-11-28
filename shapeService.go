@@ -12,11 +12,11 @@ func NewShapeService(config *Config, repo *ShapeRepo) *ShapeService {
 	}
 }
 
-func (service *ShapeService) CreateShape(uid string, shape string, color string, size string) *int8 {
+func (service *ShapeService) CreateShape(uid string, shape string, color string, size string) *uint64 {
 	return service.repo.CreateShape(uid, shape, color, size)
 }
 
-func (service *ShapeService) DeleteShape(uid string) *int8 {
+func (service *ShapeService) DeleteShape(uid string) *uint64 {
 	return service.repo.DeleteShape(uid)
 }
 
@@ -24,14 +24,14 @@ func (service *ShapeService) GetShape() *ShapeObject {
 	return service.repo.GetShape()
 }
 
-func (service *ShapeService) SetShape(uid string, shape string) *int8 {
+func (service *ShapeService) SetShape(uid string, shape string) *uint64 {
 	return service.repo.SetShape(uid, shape)
 }
 
-func (service *ShapeService) SetColor(uid string, color string) *int8 {
+func (service *ShapeService) SetColor(uid string, color string) *uint64 {
 	return service.repo.SetColor(uid, color)
 }
 
-func (service *ShapeService) SetSize(uid string, size string) *int8 {
+func (service *ShapeService) SetSize(uid string, size string) *uint64 {
 	return service.repo.SetSize(uid, size)
 }

@@ -35,11 +35,11 @@ type Payload struct {
 	NewShape string	`json:"newShape"`
 	NewColor string `json:"newColor"`
 	NewSize string  `json:"newSize"`
-	NewCounter int8 `json:"newCounter"`
+	NewCounter uint64 `json:"newCounter"`
 	Shape 	string  `json:"shape"`
 	Color 	string  `json:"color"`
 	Size 	string  `json:"size"`
-	Counter int8	`json:"counter"`
+	Counter uint64	`json:"counter"`
 }
 
 var WsMessageType = 1
