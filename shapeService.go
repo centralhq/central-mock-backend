@@ -12,6 +12,14 @@ func NewShapeService(config *Config, repo *ShapeRepo) *ShapeService {
 	}
 }
 
+func (service *ShapeService) CreateShape(uid string, shape string, color string, size string) *int8 {
+	return service.repo.CreateShape(uid, shape, color, size)
+}
+
+func (service *ShapeService) DeleteShape(uid string) *int8 {
+	return service.repo.DeleteShape(uid)
+}
+
 func (service *ShapeService) GetShape() *ShapeObject {
 	return service.repo.GetShape()
 }

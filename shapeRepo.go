@@ -33,6 +33,61 @@ func NewShapeRepository(database *pgxpool.Pool) *ShapeRepo {
 	return &ShapeRepo{database: database}
 }
 
+func (repo *ShapeRepo) CreateShape(uid string, shape string, color string, size string) *int8 {
+	query := `
+	    INSERT INTO shape (uid, shape_id, color_id, shape_size, counter)
+		VALUES (
+			$1,
+			(SELECT id FROM shape_definition
+				WHERE sdef.shape_name = $2),
+			(SELECT id FROM color_definition
+				WHERE color_name = $3),
+			$4,
+			0
+		)
+		RETURNING counter; 
+	`
+	// Problem: will users need to make sure creating new object will return the object itself
+	var counter int8
+
+	err := repo.database.QueryRow(
+		context.Background(),
+		query,
+		uid,
+		shape,
+		color,
+		size,
+	).Scan(&counter)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "No rows returned for query [%s\n]", query)
+		os.Exit(1)
+	}
+	
+	return &counter
+}
+
+func (repo *ShapeRepo) DeleteShape(uid string) *int8 {
+	query := `
+	    DELETE FROM shape
+		WHERE uid = $1
+		RETURNING shape.counter + 1
+	`
+	var counter int8
+
+	err := repo.database.QueryRow(
+		context.Background(),
+		query,
+		uid,
+	).Scan(&counter)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "No rows are returned for query [%s\n]", query)
+	}
+
+	return &counter
+}
+
 func (repo *ShapeRepo) GetShape() *ShapeObject {
 	query := `
 		SELECT uid, sdef.shape_name, cdef.color_name, shape_size, counter 
