@@ -18,6 +18,7 @@ type ShapeOperations struct {
 	OpType 		string		`json:"opType"`
 	UuId		string		`json:"uuId"`
 	ConflictId 	string  	`json:"conflictId"`
+	IsDeleted 	bool		`json:"isDeleted"`
 	Payload 	interface{}	`json:"payload"`
 }
 
@@ -29,22 +30,16 @@ type AckOperations struct {
 	Payload 	interface{} `json:"payload"`
 }
 
-type ShapePayload struct {
+type Payload struct {
 	Id string 		`json:"id"`
 	NewShape string	`json:"newShape"`
-	NewCounter int8 `json:"newCounter"`
-}
-
-type ColorPayload struct {
-	Id string		`json:"id"`
 	NewColor string `json:"newColor"`
-	NewCounter int8 `json:"newCounter"`
-}
-
-type SizePayload struct {
-	Id string		`json:"id"`
 	NewSize string  `json:"newSize"`
-	NewCounter int8 `json:"newCounter"`
+	NewCounter uint64 `json:"newCounter"`
+	Shape 	string  `json:"shape"`
+	Color 	string  `json:"color"`
+	Size 	string  `json:"size"`
+	Counter uint64	`json:"counter"`
 }
 
 var WsMessageType = 1
