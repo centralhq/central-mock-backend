@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"github.com/google/uuid"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 )
 
 type Server struct {
@@ -64,8 +68,40 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+func (s *Server) jsonResponse(w http.ResponseWriter, res interface{}, code int) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options:", "nosniff")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(res)
+}
+
 func (s *Server) Handler() {
-	http.HandleFunc("/ws", s.wsEndpoint)
+	r := chi.NewRouter()
+
+	cors := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"X-PINGOTHER", "Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	})
+
+	r.Use(cors.Handler)
+
+	r.Get("/init", s.initHandler)
+}
+
+func (s *Server) initHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method is not supported.", http.StatusMethodNotAllowed)
+		return
+	}
+	uuid := uuid.NewString()
+	packet := s.handler.initInfo(uuid)
+
+	s.jsonResponse(w, packet, http.StatusOK)
 }
 
 func (s *Server) wsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +117,6 @@ func (s *Server) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	uuid := uuid.NewString()
 	client := NewClient(s.hub, conn, s.handler, uuid) // possibly store sessionId here
 	client.hub.register <- client
-	s.handler.initInfo(conn, uuid) // not so neat, as it is not tightly coupled to client
 	// problem: the uuid is sent to the user the first time, but not properly stored.
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.

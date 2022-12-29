@@ -4,7 +4,6 @@ import (
 	"errors"
 	"encoding/json"
 	"log"
-	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -36,7 +35,7 @@ func (s *OperationManager) toBytes(payload Payload, op *ShapeOperations) []byte 
 	return bytes
 }
 
-func (s *OperationManager) initInfo(conn *websocket.Conn, uuid string) {
+func (s *OperationManager) initInfo(uuid string) *ShapeOperations {
 	shape := s.shapeService.GetShape()
 
 	packet := ShapeOperations{
@@ -45,14 +44,8 @@ func (s *OperationManager) initInfo(conn *websocket.Conn, uuid string) {
 		ConflictId: "",
 		Payload: shape,
 	}
-	bytes, _ := json.Marshal(packet)
-	log.Println(packet)
 	
-	err := conn.WriteMessage(WsMessageType, bytes)
-
-	if err != nil {
-		log.Println(err)
-	}
+	return &packet
 }
 
 func (s *OperationManager) createShape(op *ShapeOperations) []byte {
