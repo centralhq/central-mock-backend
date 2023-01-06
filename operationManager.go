@@ -103,8 +103,8 @@ func (s *OperationManager) setSize(op *Payload) *Payload {
 }
 
 func (s *OperationManager) executeSetter(op *Payload) (*Payload, error) {
-	t := reflect.TypeOf(op)
-	switch t.Field(1).Name {
+	t := reflect.TypeOf(*op)
+	switch t.Field(2).Name {
 		case "Shape":
 			return s.createShape(op), nil
 		case "NewShape":

@@ -4,6 +4,11 @@
 
 package main
 
+import (
+	"encoding/json"
+	"log"
+)
+
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
@@ -29,6 +34,17 @@ func NewHub() *Hub {
 	}
 }
 
+func (h *Hub) toBytes(payload *Payload) []byte {
+
+	bytes, err := json.Marshal(payload)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return bytes
+}
+
 func (h *Hub) run() {
 	for {
 		select {
@@ -42,8 +58,9 @@ func (h *Hub) run() {
 		case message := <-h.broadcast:
 			for client := range h.clients {
 				if message.Uuid == client.uuid {
+					bytes := h.toBytes(message)
 					select {
-					case client.send <- message:
+					case client.send <- bytes:
 					default:
 						close(client.send)
 						delete(h.clients, client)
