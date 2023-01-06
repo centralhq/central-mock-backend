@@ -79,7 +79,7 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		// TODO: insert setter logic here, but need to get the counter from the postgres
-		var operation *ShapeOperations
+		var operation *Payload
  
 		err = json.Unmarshal(message, &operation)
 
@@ -88,15 +88,15 @@ func (c *Client) readPump() {
 			return
 		}
 
-		operation.UuId = c.uuid
+		operation.Uuid = c.uuid
 
-		bytes, err := c.handler.executeSetter(operation)
+		payload, err := c.handler.executeSetter(operation)
 		
 		if err != nil {
 			log.Println(err)
 			return
 		} 
-		c.hub.broadcast <- bytes
+		c.hub.broadcast <- payload
 	}
 }
 

@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"encoding/json"
+	"reflect"
 	"log"
 	"github.com/gorilla/websocket"
-	"github.com/mitchellh/mapstructure"
 )
 
+// For vanilla, need to define a simpler struct and use that for the schema
 type OperationManager struct {
 	shapeService *ShapeService
 }
@@ -16,24 +17,6 @@ func NewOperationManager(shapeService *ShapeService) *OperationManager {
 	return &OperationManager{
 		shapeService: shapeService,
 	}
-}
-
-func (s *OperationManager) toBytes(payload Payload, op *ShapeOperations) []byte {
-
-	result := AckOperations{
-		Status:     "success",
-		OpType:     op.OpType,
-		UuId:       op.UuId,
-		ConflictId: op.ConflictId,
-		Payload:    payload,
-	}
-	bytes, err := json.Marshal(result)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	return bytes
 }
 
 func (s *OperationManager) initInfo(conn *websocket.Conn, uuid string) {
@@ -55,35 +38,23 @@ func (s *OperationManager) initInfo(conn *websocket.Conn, uuid string) {
 	}
 }
 
-func (s *OperationManager) createShape(op *ShapeOperations) []byte {
-	var payload = Payload{}
-	err := mapstructure.Decode(op.Payload, &payload)
-
-	if err != nil {
-		log.Println(err)
-	}
+func (s *OperationManager) createShape(op *Payload) *Payload {
 
 	newCounter := s.shapeService.CreateShape(
-		payload.Id, 
-		payload.Shape, 
-		payload.Color,
-		payload.Size,
+		op.Id, 
+		op.Shape, 
+		op.Color,
+		op.Size,
 	)
 
-	payload.NewCounter = *newCounter
+	op.NewCounter = *newCounter
 
-	return s.toBytes(payload, op)
+	return op
 }
 
-func (s *OperationManager) deleteShape(op *ShapeOperations) []byte {
-	var payload = Payload{}
-	err := mapstructure.Decode(op.Payload, &payload)
+func (s *OperationManager) deleteShape(op *Payload) *Payload {
 
-	if err != nil {
-		log.Println(err)
-	}
-
-	counter := s.shapeService.DeleteShape(payload.Id)
+	counter := s.shapeService.DeleteShape(op.Id)
 
 	/*
 	Scenario 1: 
@@ -99,70 +70,50 @@ func (s *OperationManager) deleteShape(op *ShapeOperations) []byte {
 	- user 1 receives delete ack and so will user 2
 	*/
 
-	payload.NewCounter = *counter
+	op.NewCounter = *counter
 
-	return s.toBytes(payload, op)
+	return op
 }
 
-func (s *OperationManager) setShape(op *ShapeOperations) []byte {
-	var payload = Payload{}
-	err := mapstructure.Decode(op.Payload, &payload)
+func (s *OperationManager) setShape(op *Payload) *Payload {
 
-	if err != nil {
-		log.Println(err)
-	}
+	newCounter := s.shapeService.SetShape(op.Id, op.NewShape)
 
-	newCounter := s.shapeService.SetShape(payload.Id, payload.NewShape)
+	op.NewCounter = *newCounter
 
-	payload.NewCounter = *newCounter
-
-	return s.toBytes(payload, op)
+	return op
 }
 
-func (s *OperationManager) setColor(op *ShapeOperations) []byte {
-	var payload = Payload{}
-	err := mapstructure.Decode(op.Payload, &payload)
+func (s *OperationManager) setColor(op *Payload) *Payload {
 
-	if err != nil {
-		log.Println(err)
-	}
+	newCounter := s.shapeService.SetColor(op.Id, op.NewColor)
 
-	newCounter := s.shapeService.SetColor(payload.Id, payload.NewColor)
+	op.NewCounter = *newCounter
 
-	payload.NewCounter = *newCounter
-
-	return s.toBytes(payload, op)
+	return op
 }
 
-func (s *OperationManager) setSize(op *ShapeOperations) []byte {
-	var payload = Payload{}
-	err := mapstructure.Decode(op.Payload, &payload)
+func (s *OperationManager) setSize(op *Payload) *Payload {
 
-	if err != nil {
-		log.Println(err)
-	}
-
-	newCounter := s.shapeService.SetSize(payload.Id, payload.NewSize)
+	newCounter := s.shapeService.SetSize(op.Id, op.NewSize)
 	
-	payload.NewCounter = *newCounter
+	op.NewCounter = *newCounter
 	
-	return s.toBytes(payload, op)
+	return op
 }
 
-func (s *OperationManager) executeSetter(op *ShapeOperations) ([]byte, error) {
-	switch op.OpType {
-		case "DELETE_SHAPE":
-			return s.deleteShape(op), nil
-
-		case "CREATE_SHAPE":
+func (s *OperationManager) executeSetter(op *Payload) (*Payload, error) {
+	t := reflect.TypeOf(op)
+	switch t.Field(1).Name {
+		case "Shape":
 			return s.createShape(op), nil
-		case "SET_SHAPE":
+		case "NewShape":
 			return s.setShape(op), nil
-		case "SET_COLOR":
+		case "NewColor":
 			return s.setColor(op), nil
-		case "SET_SIZE":
+		case "NewSize":
 			return s.setSize(op), nil
 		default:
-			return nil, errors.New("OpType invalid")
+			return nil, errors.New("Payload type invalid")
 	}
 }

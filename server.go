@@ -32,6 +32,7 @@ type AckOperations struct {
 
 type Payload struct {
 	Id string 		`json:"id"`
+	Uuid string		`json:"uuid"`
 	NewShape string	`json:"newShape"`
 	NewColor string `json:"newColor"`
 	NewSize string  `json:"newSize"`
