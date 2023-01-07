@@ -19,17 +19,11 @@ func NewOperationManager(shapeService *ShapeService) *OperationManager {
 	}
 }
 
-func (s *OperationManager) initInfo(conn *websocket.Conn, uuid string) {
+func (s *OperationManager) initInfo(conn *websocket.Conn) {
 	shape := s.shapeService.GetShape()
 
-	packet := ShapeOperations{
-		OpType: "load",
-		UuId: uuid,
-		ConflictId: "",
-		Payload: shape,
-	}
-	bytes, _ := json.Marshal(packet)
-	log.Println(packet)
+	bytes, _ := json.Marshal(shape)
+	log.Println(shape)
 	
 	err := conn.WriteMessage(WsMessageType, bytes)
 

@@ -82,7 +82,7 @@ func (s *Server) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	uuid := uuid.NewString()
 	client := NewClient(s.hub, conn, s.handler, uuid) // possibly store sessionId here
 	client.hub.register <- client
-	s.handler.initInfo(conn, uuid) // not so neat, as it is not tightly coupled to client
+	s.handler.initInfo(conn)
 	// problem: the uuid is sent to the user the first time, but not properly stored.
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.

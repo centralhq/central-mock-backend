@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"time"
 	"github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -79,7 +80,9 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		// TODO: insert setter logic here, but need to get the counter from the postgres
-		var operation *Payload
+		var operation interface{}
+
+		var payload *Payload
  
 		err = json.Unmarshal(message, &operation)
 
@@ -88,15 +91,22 @@ func (c *Client) readPump() {
 			return
 		}
 
-		operation.Uuid = c.uuid
+		err = mapstructure.Decode(operation, &payload)
 
-		payload, err := c.handler.executeSetter(operation)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		
+		payload.Uuid = c.uuid
+
+		res, err := c.handler.executeSetter(payload)
 		
 		if err != nil {
 			log.Println(err)
 			return
 		} 
-		c.hub.broadcast <- payload
+		c.hub.broadcast <- res
 	}
 }
 
