@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"encoding/json"
-	"reflect"
 	"log"
 	"github.com/gorilla/websocket"
 )
@@ -97,15 +96,14 @@ func (s *OperationManager) setSize(op *Payload) *Payload {
 }
 
 func (s *OperationManager) executeSetter(op *Payload) (*Payload, error) {
-	t := reflect.TypeOf(*op)
-	switch t.Field(2).Name {
-		case "Shape":
+	switch op.OpType {
+		case "CREATE_SHAPE":
 			return s.createShape(op), nil
-		case "NewShape":
+		case "SET_SHAPE":
 			return s.setShape(op), nil
-		case "NewColor":
+		case "SET_COLOR":
 			return s.setColor(op), nil
-		case "NewSize":
+		case "SET_SIZE":
 			return s.setSize(op), nil
 		default:
 			return nil, errors.New("Payload type invalid")
